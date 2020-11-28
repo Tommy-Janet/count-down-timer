@@ -1,0 +1,330 @@
+<html>
+    <head>
+        <title>count down timer</title>
+        <script src="https://tommy-janet.github.io/fontawesome-pro.js"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Yantramanav:wght@300&display=swap');
+
+            * {
+                box-sizing: border-box;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                outline: 0;
+                overflow: hidden;
+            }
+
+            body {
+                background-color: #3d5872;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                font-family: 'Yantramanav', sans-serif;
+            }
+
+            button {
+                cursor: pointer;
+                font-size: 14px;
+                border-radius: 5px;
+                padding: 5px 15px;
+                background-color: #a7c5e3;
+                border-top: 0;
+                border-bottom: 2px solid #0000004d;
+                border-left: 0;
+                border-right: 2px solid #0000004d;
+            }
+
+            button:active {
+                border-top: 2px solid #0000004d;
+                border-bottom: 0;
+                border-left: 2px solid #0000004d;
+                border-right: 0;
+            }
+
+            .settings-btn {
+                position: absolute;
+                bottom: 30px;
+                left: 30px;
+            }
+
+            .settings {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background-color: #0000004d;
+                color: white;
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transform: translateY(0);
+                transition: transform 300ms ease-in-out;
+            }
+
+            .settings.hide1 {
+                transform: translateY(-100%);
+            }
+
+            .container {
+                background-color: #34495e;
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 3px 5px #0000004d;
+                text-align: center;
+                justify-content: center;
+                margin-left: 250px;
+                width: 500px;
+                margin: 0;
+            }
+
+            .fa-alarm-clock {
+                font-size: 60px;
+                margin-bottom: 10px;
+            }
+
+            form {
+                margin: 10px;
+            }
+
+            .set-alarm {
+                margin-top: 10px;
+            }
+
+            .cancel-alarm {
+                margin-top: 10px;
+            }
+
+            .time-now {
+                font-size: 30px;
+            }
+
+            .count-down-container {
+                display: inline-flex;
+            }
+
+            .show {
+                display: inline-block;
+            }
+
+            .hide {
+                display: none;
+            }
+
+            .on {
+                cursor: pointer;
+            }
+
+            .off {
+                cursor: pointer;
+            }
+
+            input[type="time"] {
+                cursor: pointer;
+            }
+
+            a {
+                color: rgb(255, 0, 0);
+            }
+
+            a:hover {
+                color: rgb(199, 0, 0);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="settings-btn" class="settings-btn"><i class="fas fa-cog"></i></button>
+
+        <div id="settings" class="settings">
+            <label>Alarm On/Off</label>
+            <div id="on-container" class="on" value="on">
+                <input type="radio" name="on-off-switch" id="on-switch" value="on">
+                <label for="on-switch">on</label>
+            </div>
+            <div id="off-container" class="off" value="off">
+                <input type="radio" name="on-off-switch" value="off" id="off-switch">
+                <label for="off-switch">off</label>
+            </div>
+        </div>
+    
+        <div class="container">
+            <i class="fas fa-alarm-clock"></i>
+    
+            <div id="time-now" class="time-now">7:00:00</div>
+
+            <form id="form" class="form">
+                <label>How much time till the alarm should ring?</label>
+                <input type="time" id="stop-time">
+
+                <p>Note: if you are setting an alarm longer than 24 ours, I you need to use <a href="https://tommy-janet.github.io/alarm-set-ring/" target="_blank">the more wide range alarm clock</a>.</p>
+            
+                <button type="button" id="set-alarm" class="set-alarm" onclick="setAlarm()">Set Alarm</button>
+                <button type="button" id="cancel-alarm" class="cancel-alarm hide" onclick="stop()">Cancel alarm</button>
+                <button type="button" id="stop-alarm" class="stop-alarm hide" onclick="stop()">Stop Alarm</button>
+            </form>
+        </div>
+        <script>
+            const settingsBtn = document.getElementById("settings-btn");
+            const settings = document.getElementById("settings");
+            const onContainer = document.getElementById("on-container");
+            const offContainer = document.getElementById("off-container");
+            const onSwitch = document.getElementById("on-switch");
+            const offSwitch = document.getElementById("off-switch");
+            const timeNow = document.getElementById("time-now");
+            const form = document.getElementById("form");
+            const stopTime = document.getElementById("stop-time");
+            const setAlarmBtn = document.getElementById("set-alarm");
+            const stopAlarmBtn = document.getElementById("stop-alarm");
+            const cancelAlarmBtn = document.getElementById("cancel-alarm");
+
+            stopTime.defaultValue = "00:00:01";
+            
+            let alarmSound = new Audio();
+            alarmSound.src = "https://audio.jukehost.co.uk/8aWVjYr4sYDqgro46NP7V2qsZ2anfJKy";
+
+            let on_off = localStorage.getItem("on_off") !== null ? localStorage.getItem("on_off") : "on";
+            let ms;
+            let alarmTimer;
+
+            if (on_off === "on") {
+                onContainer.innerHTML = `
+                <input type="radio" name="on-off-switch" id="on-switch" value="on" checked="checked">
+                <label for="on-switch">on</label>
+                `;
+
+                offContainer.innerHTML = `
+                    <input type="radio" name="on-off-switch" id="off-switch" value="off">
+                    <label for="off-switch">off</label>
+                `;
+            }
+            if (on_off === "off") {
+                onContainer.innerHTML = `
+                <input type="radio" name="on-off-switch" id="on-switch" value="on">
+                <label for="on-switch">on</label>
+                `;
+
+                offContainer.innerHTML = `
+                    <input type="radio" name="on-off-switch" id="off-switch" value="off" checked="checked">
+                    <label for="off-switch">off</label>
+                `;
+            }
+
+            function runClock() {
+                let today = new Date();
+                let h = today.getHours();
+                let m = today.getMinutes();
+                let s = today.getSeconds();
+
+                if (h === 0) {
+                    h = 12;
+                }
+
+                if (h < 10) {
+                    h = "0" + h;
+                }
+
+                if (m < 10) {
+                    m = "0" + m;
+                }
+
+                if (s < 10) {
+                    s = "0" + s;
+                }
+
+                let time = h + ":" + m + ":" + s;
+
+                timeNow.innerHTML = `
+                    ${time}
+                `;
+            }
+
+            runClock();
+            setInterval(runClock, 1000);
+
+            function setAlarm() {
+                ms = stopTime.valueAsNumber;
+
+                const rbs = document.querySelectorAll('input[type="radio"]');
+                let selectedValue;
+                for (let rb of rbs) {
+                    if (rb.checked) {
+                        selectedValue = rb.value;
+                        break;
+                    }
+                }
+
+                if (isNaN(ms)) {
+                    alert("Please input a valid time!");
+                }
+                else if (selectedValue === "off") {
+                    alert("Your alarm is not on!");
+                }
+                else if (ms === 0) {
+                    alert("The time you entered has to be at least 1 minute!");
+                }
+                else {
+                    setAlarmBtn.classList.add("hide");
+                    setAlarmBtn.classList.remove("show");
+                    cancelAlarmBtn.classList.add("show");
+                    cancelAlarmBtn.classList.remove("hide");
+
+                    alarmTimer = setTimeout(initAlarm, ms);
+                }
+            }
+
+            function initAlarm() {
+                alarmSound.play();
+                
+                stopAlarmBtn.classList.add("show");
+                stopAlarmBtn.classList.remove("hide");
+            }
+
+            function stop() {
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
+
+                clearTimeout(alarmTimer);
+
+                stopAlarmBtn.classList.add("hide");
+                stopAlarmBtn.classList.remove("show");
+                setAlarmBtn.classList.add("show");
+                setAlarmBtn.classList.remove("hide");
+                cancelAlarmBtn.classList.add("hide");
+                cancelAlarmBtn.classList.remove("show");
+            }
+
+            settingsBtn.addEventListener("click", () => settings.classList.toggle("hide1"));
+
+            onContainer.addEventListener("click", () => {
+                localStorage.setItem("on_off", "on");
+
+                onContainer.innerHTML = `
+                <input type="radio" name="on-off-switch" id="on-switch" value="on" checked="checked">
+                <label for="on-switch">on</label>
+                `;
+
+                offContainer.innerHTML = `
+                    <input type="radio" name="on-off-switch" id="off-switch" value="off">
+                    <label for="off-switch">off</label>
+                `;
+            });
+
+            offContainer.addEventListener("click", () => {
+                localStorage.setItem("on_off", "off");
+
+                onContainer.innerHTML = `
+                <input type="radio" name="on-off-switch" id="on-switch" value="on">
+                <label for="on-switch">on</label>
+                `;
+
+                offContainer.innerHTML = `
+                    <input type="radio" name="on-off-switch" id="off-switch" value="off" checked="checked">
+                    <label for="off-switch">off</label>
+                `;
+            });
+        </script>
+    </body>
+</html>
